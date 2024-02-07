@@ -1,12 +1,12 @@
 from flask import Flask, request, jsonify
+from dotenv import load_dotenv
 import os
 import psycopg2
 
 
 app = Flask(__name__)
 
-# Get database path from environment variable or use default value
-DB_PATH = os.getenv('DB_PATH', 'reverse_ips.db')
+load_dotenv()
 
 # Function to establish database connection
 def get_db_connection():
