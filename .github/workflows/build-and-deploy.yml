@@ -98,7 +98,7 @@ jobs:
           token: ${{ secrets.TOKEN_GITHUB }} 
 
       - name: Update kube config
-        run: aws eks update-kubeconfig --name reverseip-cluster --region us-east-1
+        run: aws eks update-kubeconfig --name reverseip-app-cluster --region us-east-1
 
       - name: Apply Changes to EKS cluster
         run: |
