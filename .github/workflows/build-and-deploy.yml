@@ -1,0 +1,81 @@
+name: Docker Build and Scan
+
+on:
+  workflow_dispatch:
+  push:
+   branches:
+     - main
+   
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Build Docker Image
+        run: |
+         echo "${{ secrets.DOT_ENV }}" >> .env
+         docker build -t curhvyn/reversed-ip:latest . 
+
+      - name: Install Trivy
+        run: |
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.43.0/trivy_0.43.0_Linux-64bit.tar.gz
+          tar zxvf trivy_0.43.0_Linux-64bit.tar.gz
+          sudo mv trivy /usr/local/bin/
+
+      - name: Scan Docker Image with Trivy
+        run: trivy image --severity HIGH --no-progress curhvyn/reversed-ip:latest
+
+  push:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+        - name: Checkout Repository
+          uses: actions/checkout@v2
+  
+        - name: Install kubectl
+          uses: azure/setup-kubectl@v1
+          with:
+            version: 'v1.21.3'
+          id: install
+  
+        - name: Automatic Tagging of Releases
+          uses: rymndhng/release-on-push-action@master
+          id: release
+          env:
+            GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+          with:
+            tag_prefix: ""
+            bump_version_scheme: patch
+            release_body: "The official release for curhvyn/reversed-ip"
+  
+        - name: Check Release Output Parameters
+          run: |
+            echo "Got tag name ${{ steps.release.outputs.tag_name }}"
+            echo "Got release version ${{ steps.release.outputs.version }}"
+  
+        - name: Build Docker Image
+          run: |
+           echo "${{ secrets.DOT_ENV }}" >> .env
+           docker build -t curhvyn/reversed-ip:${{ steps.release.outputs.version }} . 
+  
+        - name: Login to Docker Hub
+          uses: docker/login-action@v1
+          with:
+            username: ${{ secrets.DOCKER_USERNAME }}
+            password: ${{ secrets.DOCKER_PASSWORD }}
+  
+        - name: Push Docker Image to Docker Hub
+          run: docker push curhvyn/reversed-ip:${{ steps.release.outputs.version }}
+  
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v1
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: us-east-1
+
