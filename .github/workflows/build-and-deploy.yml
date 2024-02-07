@@ -102,7 +102,7 @@ jobs:
 
       - name: Apply Changes to EKS cluster
         run: |
-          helm install -f values.yaml reverseip .
+          helm upgrade -f values.yaml reverseip .
 
       - name: Apply Changes to EKS cluster
         run: |
